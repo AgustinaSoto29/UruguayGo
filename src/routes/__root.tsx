@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Header, Footer } from "@/components/site-shell";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { staleBundleRecoveryScript } from "@/lib/stale-bundle-recovery";
 
 function NotFoundComponent() {
   return (
@@ -110,6 +111,7 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="es-UY">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: staleBundleRecoveryScript }} />
         <HeadContent />
       </head>
       <body>
