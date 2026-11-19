@@ -10,33 +10,93 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AsistenteRouteImport } from './routes/asistente'
+import { Route as DestinosRouteImport } from './routes/destinos'
+import { Route as ExperienciasRouteImport } from './routes/experiencias'
+import { Route as DestinosIndexRouteImport } from './routes/destinos.index'
+import { Route as DestinosSlugRouteImport } from './routes/destinos.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AsistenteRoute = AsistenteRouteImport.update({
+  id: '/asistente',
+  path: '/asistente',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DestinosRoute = DestinosRouteImport.update({
+  id: '/destinos',
+  path: '/destinos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExperienciasRoute = ExperienciasRouteImport.update({
+  id: '/experiencias',
+  path: '/experiencias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DestinosIndexRoute = DestinosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DestinosRoute,
+} as any)
+const DestinosSlugRoute = DestinosSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => DestinosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/asistente': typeof AsistenteRoute
+  '/destinos': typeof DestinosRouteWithChildren
+  '/experiencias': typeof ExperienciasRoute
+  '/destinos/$slug': typeof DestinosSlugRoute
+  '/destinos/': typeof DestinosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/asistente': typeof AsistenteRoute
+  '/experiencias': typeof ExperienciasRoute
+  '/destinos/$slug': typeof DestinosSlugRoute
+  '/destinos': typeof DestinosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/asistente': typeof AsistenteRoute
+  '/destinos': typeof DestinosRouteWithChildren
+  '/experiencias': typeof ExperienciasRoute
+  '/destinos/$slug': typeof DestinosSlugRoute
+  '/destinos/': typeof DestinosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/asistente'
+    | '/destinos'
+    | '/experiencias'
+    | '/destinos/$slug'
+    | '/destinos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/asistente' | '/experiencias' | '/destinos/$slug' | '/destinos'
+  id:
+    | '__root__'
+    | '/'
+    | '/asistente'
+    | '/destinos'
+    | '/experiencias'
+    | '/destinos/$slug'
+    | '/destinos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AsistenteRoute: typeof AsistenteRoute
+  DestinosRoute: typeof DestinosRouteWithChildren
+  ExperienciasRoute: typeof ExperienciasRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +108,63 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/asistente': {
+      id: '/asistente'
+      path: '/asistente'
+      fullPath: '/asistente'
+      preLoaderRoute: typeof AsistenteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/destinos': {
+      id: '/destinos'
+      path: '/destinos'
+      fullPath: '/destinos'
+      preLoaderRoute: typeof DestinosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/experiencias': {
+      id: '/experiencias'
+      path: '/experiencias'
+      fullPath: '/experiencias'
+      preLoaderRoute: typeof ExperienciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/destinos/': {
+      id: '/destinos/'
+      path: '/'
+      fullPath: '/destinos/'
+      preLoaderRoute: typeof DestinosIndexRouteImport
+      parentRoute: typeof DestinosRoute
+    }
+    '/destinos/$slug': {
+      id: '/destinos/$slug'
+      path: '/$slug'
+      fullPath: '/destinos/$slug'
+      preLoaderRoute: typeof DestinosSlugRouteImport
+      parentRoute: typeof DestinosRoute
+    }
   }
 }
 
+interface DestinosRouteChildren {
+  DestinosSlugRoute: typeof DestinosSlugRoute
+  DestinosIndexRoute: typeof DestinosIndexRoute
+}
+
+const DestinosRouteChildren: DestinosRouteChildren = {
+  DestinosSlugRoute: DestinosSlugRoute,
+  DestinosIndexRoute: DestinosIndexRoute,
+}
+
+const DestinosRouteWithChildren = DestinosRoute._addFileChildren(
+  DestinosRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AsistenteRoute: AsistenteRoute,
+  DestinosRoute: DestinosRouteWithChildren,
+  ExperienciasRoute: ExperienciasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

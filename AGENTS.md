@@ -28,3 +28,8 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Application architecture
+- Keep the initial review version client-only with a shared destination catalog and explicit demonstration responses; external integrations are deferred by request.
+- Use file-based content routes with shared navigation in the root shell and semantic visual tokens in the global stylesheet.
+- Store locally published experiences only in browser storage, clearly separated from seeded sample stories, so the review version needs no external service.
