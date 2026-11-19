@@ -13,23 +13,28 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Header, Footer } from "@/components/site-shell";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { staleBundleRecoveryScript } from "@/lib/stale-bundle-recovery";
+import {
+  isStaleBundleError,
+  markAppHealthy,
+  recoverFromStaleBundle,
+  staleBundleRecoveryScript,
+} from "@/lib/stale-bundle-recovery";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Página no encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          La página que buscás no existe o se movió.
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Ir al inicio
           </Link>
         </div>
       </div>
@@ -40,34 +45,45 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  const stale = isStaleBundleError(error);
   useEffect(() => {
+    if (stale) {
+      recoverFromStaleBundle(error instanceof Error ? error.message : String(error));
+      return;
+    }
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
+  }, [error, stale]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          {stale ? "Cargando la versión más reciente…" : "No pudimos cargar esta página"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          {stale
+            ? "UruguayGo se actualizó. Si no se recarga sola en unos segundos, tocá Reintentar."
+            : "Algo salió mal. Podés reintentar o volver al inicio."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
+              if (stale) {
+                window.location.reload();
+                return;
+              }
               router.invalidate();
               reset();
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Reintentar
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Ir al inicio
           </a>
         </div>
       </div>
@@ -124,6 +140,12 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // The app rendered: clear any stale-version retry counter after a short grace period.
+  useEffect(() => {
+    const timer = window.setTimeout(markAppHealthy, 5000);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
