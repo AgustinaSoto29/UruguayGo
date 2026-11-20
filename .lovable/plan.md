@@ -37,11 +37,12 @@ Se conserva la estructura (Inicio, Destinos, Ficha, Experiencias, Asistente) y e
 - Nueva sección "Cómo moverse por Uruguay" dentro de la página de destinos (sin agregar páginas nuevas al menú): compra de pasajes con Viatik y en terminales, principales empresas interdepartamentales, ómnibus urbanos de Montevideo, ferris desde Buenos Aires, autos de alquiler, viajes compartidos y aplicaciones de traslado, con su alcance y límites.
 - Todo dato de horarios, precios o frecuencias se presenta como "a confirmar" con enlace, nunca como valor fijo.
 
-### 3. Asistente especializado
-- Depende de la respuesta pendiente:
-  - **Con inteligencia artificial (recomendado)**: se activa Lovable Cloud y el asistente responde con IA, pero limitado al catálogo verificado y a la guía de transporte de la app. Debe recomendar variado (rotando entre conocidos y joyas ocultas), adaptar a los intereses, citar las fuentes del catálogo y decir claramente "no tengo ese dato" cuando algo no está en la información verificada.
-  - **Sin conexión, mejorado**: reconocimiento de intereses combinados, sinónimos y nombres cortos, rotación de sugerencias para no repetir, respuestas de transporte con alternativas y fuentes, y el mismo criterio de admitir lo que no sabe.
-- En ambos casos, las respuestas enlazan a la ficha del destino.
+### 3. Asistente especializado con inteligencia artificial
+- Se activa Lovable Cloud y el asistente responde con IA, conversando de forma natural.
+- Limitado al catálogo verificado de destinos y a la guía de transporte de la app: no inventa lugares, precios ni horarios.
+- Recomienda variado, alternando destinos conocidos y joyas ocultas, y adapta las sugerencias a los intereses de la persona.
+- Cita las fuentes del catálogo y dice claramente "no tengo ese dato" cuando algo no está en la información verificada.
+- Las respuestas enlazan a la ficha del destino. Si el servicio de IA no responde, se muestra un aviso claro sin perder la conversación.
 
 ### 4. Lo que se conserva sin cambios
 - Diseño, navegación, experiencias publicadas, buscador, recuperación automática ante archivos viejos.
@@ -50,5 +51,5 @@ Se conserva la estructura (Inicio, Destinos, Ficha, Experiencias, Asistente) y e
 - `Destination` suma: `hidden: boolean`, `transport: { confirmed: string[]; options: {mode; detail}[]; tips: string[] }`, `sources: {label; url}[]`; se elimina `rating`. Nueva categoría `Joyas ocultas` en `categories`.
 - Nuevo módulo de guía de transporte general compartido por la página de destinos y el asistente.
 - Investigación previa de cada destino y medio de transporte con búsqueda web; solo se incluye lo que tenga fuente oficial o reconocida.
-- Opción IA: función de servidor con el AI Gateway, con el catálogo como contexto y respuesta en streaming; la opción sin conexión reemplaza la lógica de `travel-assistant.ts`.
+- Asistente: función de servidor con el AI Gateway (modelo por defecto del espacio de trabajo), con el catálogo y la guía de transporte como contexto; se reemplaza la lógica de palabras clave de `travel-assistant.ts`.
 - Pruebas: nueva categoría filtra solo joyas ocultas; Las Grutas y Punta Ballena presentes; todo destino tiene al menos una fuente y alternativas de transporte; el asistente no repite las mismas sugerencias en consultas seguidas y admite cuando no sabe.
