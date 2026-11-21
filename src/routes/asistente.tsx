@@ -15,7 +15,12 @@ export const Route = createFileRoute('/asistente')({
   component: Assistant,
 });
 
-const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+const INITIAL_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash',
+];
 
 const welcome: ChatMessage = {
   role: 'assistant',
@@ -59,7 +64,8 @@ async function tryModel(
   systemPrompt: string,
   contents: { role: string; parts: { text: string }[] }[],
 ): Promise<string | null> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const cleanName = model.replace(/^models\//, '');
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanName}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -83,6 +89,21 @@ async function tryModel(
   return text || null;
 }
 
+async function listAvailableModels(apiKey: string): Promise<string[]> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(url);
+  if (!response.ok) return [];
+
+  const data = (await response.json()) as {
+    models?: { name?: string; supportedGenerationMethods?: string[] }[];
+  };
+
+  return (data.models ?? [])
+    .filter((m) => m.name && (m.supportedGenerationMethods ?? ['generateContent']).includes('generateContent'))
+    .map((m) => m.name!.replace(/^models\//, ''))
+    .filter((name) => name.includes('gemini') && !name.includes('embedding') && !name.includes('imagen') && !name.includes('veo'));
+}
+
 async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
   if (!apiKey) return null;
@@ -96,7 +117,14 @@ async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> 
     parts: [{ text: msg.content }],
   }));
 
-  for (const model of MODELS) {
+  for (const model of INITIAL_MODELS) {
+    const reply = await tryModel(model, apiKey, systemPrompt, contents);
+    if (reply) return reply;
+  }
+
+  const discovered = await listAvailableModels(apiKey);
+  for (const model of discovered) {
+    if (INITIAL_MODELS.includes(model)) continue;
     const reply = await tryModel(model, apiKey, systemPrompt, contents);
     if (reply) return reply;
   }
