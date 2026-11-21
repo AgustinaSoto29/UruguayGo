@@ -1,4 +1,4 @@
-\import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Send, Sparkles, Trash2 } from 'lucide-react';
@@ -20,14 +20,14 @@ const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
 const welcome: ChatMessage = {
   role: 'assistant',
   content:
-    '¡Hola! Soy tu compañero de viaje en **UruguayGo**. Preguntame por destinos clasicos o joyas ocultas como Las Grutas de Punta Ballena, Arboretum Lussich, San Gregorio de Polanco o Sierra de las Animas.',
+    'Hola! Soy tu companero de viaje en **UruguayGo**. Preguntame por destinos clasicos o joyas ocultas como Las Grutas de Punta Ballena, Arboretum Lussich, San Gregorio de Polanco o Sierra de las Animas.',
 };
 
 const suggestions = [
-  '¿Qué lugares poco conocidos me recomendás?',
+  'Que lugares poco conocidos me recomendas?',
   'Contame sobre Las Grutas de Punta Ballena',
   'Armame una escapada de naturaleza y sierras',
-  '¿Qué hacer en Colonia o Cabo Polonio?',
+  'Que hacer en Colonia o Cabo Polonio?',
 ];
 
 function sanitizeHistory(history: ChatMessage[]): ChatMessage[] {
@@ -153,7 +153,7 @@ function Assistant() {
           <Sparkles size={25} />
         </span>
         <div className="flex-1">
-          <h1>Tu compañero de aventura</h1>
+          <h1>Tu companero de aventura</h1>
           <p>
             {hasApiKey
               ? 'Asistente turistico de UruguayGo conectado a Google Gemini.'
