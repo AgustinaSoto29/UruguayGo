@@ -2,9 +2,8 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { buildSystemPrompt, sanitizeHistory } from './assistant-prompt';
 
-// Conexión directa a la API oficial de Google Gemini desde el servidor:
-// GEMINI_API_KEY nunca se expone en el código del navegador.
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+// Llamada directa a la API nativa de Google Gemini desde el servidor.
+// GEMINI_API_KEY nunca se expone en el navegador.
 const MODEL = 'gemini-2.5-flash';
 const TIMEOUT_MS = 25_000;
 
@@ -21,38 +20,56 @@ const input = z.object({
 export const askAssistant = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => input.parse(data))
   .handler(async ({ data }): Promise<AssistantResult> => {
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) return { ok: false, reason: 'not_configured' };
 
     const history = sanitizeHistory(data.messages);
     if (!history.length) return { ok: false, reason: 'unavailable' };
 
+    const contents = history.map((msg) => ({
+      role: msg.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: msg.content }],
+    }));
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      const response = await fetch(GEMINI_API_URL, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: MODEL,
-          messages: [{ role: 'system', content: buildSystemPrompt() }, ...history],
+          systemInstruction: {
+            parts: [{ text: buildSystemPrompt() }],
+          },
+          contents,
         }),
       });
+
       if (response.status === 429) return { ok: false, reason: 'rate_limited' };
       if (response.status === 402 || response.status === 403) return { ok: false, reason: 'credits' };
       if (!response.ok) {
-        console.error('Gemini API error', response.status, await response.text());
+        const errorBody = await response.text().catch(() => '');
+        console.error('Gemini native API error', response.status, errorBody);
         return { ok: false, reason: 'unavailable' };
       }
-      const json = (await response.json()) as { choices?: { message?: { content?: string } }[] };
-      const reply = json.choices?.[0]?.message?.content?.trim();
+
+      const json = (await response.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+
+      const reply = json.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text ?? '')
+        .join('')
+        .trim();
+
       return reply ? { ok: true, reply } : { ok: false, reason: 'unavailable' };
     } catch (error) {
-      console.error('Gemini API request failed', error);
+      console.error('Gemini native API request failed', error);
       return { ok: false, reason: 'unavailable' };
     } finally {
       clearTimeout(timer);
