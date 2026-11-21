@@ -15,11 +15,11 @@ export const Route = createFileRoute('/asistente')({
   component: Assistant,
 });
 
-const INITIAL_MODELS = [
-  'gemini-2.5-flash',
+const PREFERRED_MODELS = [
   'gemini-2.5-flash-lite',
-  'gemini-2.0-flash-lite',
-  'gemini-1.5-flash',
+  'gemini-2.5-flash',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
 ];
 
 const welcome: ChatMessage = {
@@ -38,10 +38,10 @@ const suggestions = [
 function sanitizeHistory(history: ChatMessage[]): ChatMessage[] {
   return history
     .filter((msg) => (msg.role === 'user' || msg.role === 'assistant') && msg.content.trim().length > 0)
-    .slice(-10)
+    .slice(-8)
     .map((msg) => ({
       role: msg.role,
-      content: msg.content.trim().slice(0, 2000),
+      content: msg.content.trim().slice(0, 1500),
     }));
 }
 
@@ -51,11 +51,24 @@ function buildSystemPrompt(): string {
     .join('\n');
 
   return [
-    'Sos el asistente turistico de UruguayGo. Responde en espanol claro y util sobre turismo en Uruguay.',
+    'Sos el asistente turistico de UruguayGo. Responde en espanol claro, amable y util sobre turismo en Uruguay.',
     'Si mencionas un destino del catalogo, usa enlaces Markdown como [Nombre](/destinos/slug).',
     'Destinos:',
     catalog,
   ].join('\n');
+}
+
+function isTextChatModel(name: string): boolean {
+  const lower = name.toLowerCase();
+  return (
+    lower.includes('gemini') &&
+    !lower.includes('tts') &&
+    !lower.includes('image') &&
+    !lower.includes('audio') &&
+    !lower.includes('embedding') &&
+    !lower.includes('imagen') &&
+    !lower.includes('veo')
+  );
 }
 
 async function tryModel(
@@ -89,7 +102,7 @@ async function tryModel(
   return text || null;
 }
 
-async function listAvailableModels(apiKey: string): Promise<string[]> {
+async function listTextModels(apiKey: string): Promise<string[]> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(url);
   if (!response.ok) return [];
@@ -101,7 +114,7 @@ async function listAvailableModels(apiKey: string): Promise<string[]> {
   return (data.models ?? [])
     .filter((m) => m.name && (m.supportedGenerationMethods ?? ['generateContent']).includes('generateContent'))
     .map((m) => m.name!.replace(/^models\//, ''))
-    .filter((name) => name.includes('gemini') && !name.includes('embedding') && !name.includes('imagen') && !name.includes('veo'));
+    .filter(isTextChatModel);
 }
 
 async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> {
@@ -117,14 +130,14 @@ async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> 
     parts: [{ text: msg.content }],
   }));
 
-  for (const model of INITIAL_MODELS) {
+  for (const model of PREFERRED_MODELS) {
     const reply = await tryModel(model, apiKey, systemPrompt, contents);
     if (reply) return reply;
   }
 
-  const discovered = await listAvailableModels(apiKey);
-  for (const model of discovered) {
-    if (INITIAL_MODELS.includes(model)) continue;
+  const discovered = await listTextModels(apiKey);
+  for (const model of discovered.slice(0, 4)) {
+    if (PREFERRED_MODELS.includes(model)) continue;
     const reply = await tryModel(model, apiKey, systemPrompt, contents);
     if (reply) return reply;
   }
