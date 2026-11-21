@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+\import { createFileRoute, Link } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Send, Sparkles, Trash2 } from 'lucide-react';
@@ -76,4 +76,146 @@ async function tryModel(
   };
 
   const text = data.candidates?.[0]?.content?.parts
-    ?.map((p) => p
+    ?.map((p) => p.text ?? '')
+    .join('')
+    .trim();
+
+  return text || null;
+}
+
+async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  if (!apiKey) return null;
+
+  const clean = sanitizeHistory(history);
+  if (!clean.length) return null;
+
+  const systemPrompt = buildSystemPrompt();
+  const contents = clean.map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }));
+
+  for (const model of MODELS) {
+    const reply = await tryModel(model, apiKey, systemPrompt, contents);
+    if (reply) return reply;
+  }
+
+  return null;
+}
+
+function Assistant() {
+  const hasApiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY?.trim());
+  const [messages, setMessages] = useState<ChatMessage[]>([welcome]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottom = useRef<HTMLDivElement>(null);
+  const session = useRef(0);
+
+  useEffect(() => {
+    if (messages.length > 1 || loading) {
+      bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [messages, loading]);
+
+  async function send(value: string) {
+    const text = value.trim();
+    if (!text || loading) return;
+    const history: ChatMessage[] = [...messages, { role: 'user', content: text }];
+    const current = session.current;
+    setMessages(history);
+    setInput('');
+    setLoading(true);
+
+    let reply: string;
+    try {
+      const aiReply = await callGeminiDirect(history.slice(1));
+      reply = aiReply ?? replyToTraveler(history);
+    } catch {
+      reply = replyToTraveler(history);
+    }
+
+    if (session.current !== current) return;
+    setMessages([...history, { role: 'assistant', content: reply }]);
+    setLoading(false);
+  }
+
+  function reset() {
+    session.current += 1;
+    setMessages([welcome]);
+    setLoading(false);
+  }
+
+  return (
+    <main className="chat-page">
+      <div className="chat-title">
+        <span className="assistant-icon">
+          <Sparkles size={25} />
+        </span>
+        <div className="flex-1">
+          <h1>Tu compañero de aventura</h1>
+          <p>
+            {hasApiKey
+              ? 'Asistente turistico de UruguayGo conectado a Google Gemini.'
+              : 'Asistente turistico de UruguayGo (falta VITE_GEMINI_API_KEY en Vercel).'}
+          </p>
+        </div>
+        <Button variant="ghost" size="icon" title="Nueva conversacion" aria-label="Nueva conversacion" onClick={reset}>
+          <Trash2 />
+        </Button>
+      </div>
+
+      <div className="chat-messages" aria-live="polite" aria-label="Conversacion">
+        {messages.map((message, i) => (
+          <div className={`chat-message ${message.role}`} key={i}>
+            <ReactMarkdown
+              components={{
+                a: ({ href, children }) =>
+                  href?.startsWith('/destinos/') ? (
+                    <Link to={href as '/destinos/$slug'}>{children}</Link>
+                  ) : (
+                    <span>{children}</span>
+                  ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        ))}
+        {loading && <div className="chat-message assistant typing">Escribiendo...</div>}
+        <div ref={bottom} />
+      </div>
+
+      <div className="suggestions">
+        {suggestions.map((s) => (
+          <Button key={s} variant="outline" size="sm" disabled={loading} onClick={() => send(s)}>
+            {s}
+          </Button>
+        ))}
+      </div>
+
+      <form
+        className="chat-compose"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+        }}
+      >
+        <input
+          aria-label="Tu pregunta"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Preguntame por destinos, rutas o joyas ocultas..."
+          maxLength={2000}
+        />
+        <Button type="submit" size="icon" aria-label="Enviar pregunta" disabled={!input.trim() || loading}>
+          <Send />
+        </Button>
+      </form>
+
+      <p className="chat-disclaimer">
+        Asistente de viaje de UruguayGo · Verifica horarios y accesos antes de viajar.
+      </p>
+    </main>
+  );
+}
