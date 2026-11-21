@@ -87,12 +87,12 @@ function Home() {
       </section>
 
       <section className="category-strip" aria-label="Categorías turísticas">
-        <div className="container category-row">
+        <div className="container category-row flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:gap-4">
           {categories.map((category: Category) => {
             const Icon = categoryIcons[category] ?? Compass;
             return (
               <Link
-                className="category-link flex flex-col items-center gap-1.5"
+                className="category-link flex shrink-0 flex-col items-center gap-1 whitespace-nowrap text-xs sm:text-sm"
                 key={category}
                 to="/destinos"
                 search={{ categoria: category }}
