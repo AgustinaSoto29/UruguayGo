@@ -87,12 +87,28 @@ function Home() {
       </section>
 
       <section className="category-strip" aria-label="Categorías turísticas">
-        <div className="container category-row flex flex-wrap items-center justify-between gap-2 sm:flex-nowrap sm:gap-4">
+        <div
+          className="container category-row grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-7 md:gap-2"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
           {categories.map((category: Category) => {
             const Icon = categoryIcons[category] ?? Compass;
             return (
               <Link
-                className="category-link flex shrink-0 flex-col items-center gap-1 whitespace-nowrap text-xs sm:text-sm"
+                className="category-link flex flex-col items-center justify-center gap-1 whitespace-nowrap text-center text-xs sm:text-sm"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.25rem',
+                  whiteSpace: 'nowrap',
+                }}
                 key={category}
                 to="/destinos"
                 search={{ categoria: category }}
