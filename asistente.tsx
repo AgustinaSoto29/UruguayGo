@@ -5,7 +5,7 @@ import { Send, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { pageHead } from '@/lib/destinations';
 import { replyToTraveler, type ChatMessage } from '@/lib/travel-assistant';
-import { askAssistant, type AssistantFailure } from '@/lib/assistant.functions';
+import { buildSystemPrompt, sanitizeHistory } from '@/lib/assistant-prompt';
 
 export const Route = createFileRoute('/asistente')({
   head: () =>
@@ -15,6 +15,8 @@ export const Route = createFileRoute('/asistente')({
     ),
   component: Assistant,
 });
+
+const MODEL = 'gemini-2.5-flash';
 
 const welcome: ChatMessage = {
   role: 'assistant',
@@ -29,16 +31,45 @@ const suggestions = [
   '¿Qué hacer en Colonia o Cabo Polonio?',
 ];
 
-const failureNotice: Record<AssistantFailure, string> = {
-  not_configured:
-    '⚠️ No se detectó `GEMINI_API_KEY` en las variables de entorno del servidor. Mientras tanto, te comparto una orientación rápida de la guía:',
-  rate_limited:
-    '⏳ Se alcanzó el límite temporal de consultas de la API de Gemini. Probá de nuevo en unos segundos; mientras tanto, aquí tenés una guía rápida:',
-  credits:
-    '🔑 La clave `GEMINI_API_KEY` fue rechazada o no tiene permisos activos en Google AI Studio. Revisá que la clave sea válida y esté guardada en Vercel:',
-  unavailable:
-    '📡 Hubo un problema temporal al conectar con Gemini. Reintentá en un momento; aquí tenés una respuesta base de la guía:',
-};
+async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
+  if (!apiKey) return null;
+
+  const clean = sanitizeHistory(history);
+  if (!clean.length) return null;
+
+  const contents = clean.map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }));
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: buildSystemPrompt() }] },
+      contents,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('Gemini error:', response.status, await response.text().catch(() => ''));
+    return null;
+  }
+
+  const data = (await response.json()) as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+
+  const text = data.candidates?.[0]?.content?.parts
+    ?.map((p) => p.text ?? '')
+    .join('')
+    .trim();
+
+  return text || null;
+}
 
 function Assistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([welcome]);
@@ -64,10 +95,10 @@ function Assistant() {
 
     let reply: string;
     try {
-      const result = await askAssistant({ data: { messages: history.slice(1) } });
-      reply = result.ok ? result.reply : `${failureNotice[result.reason]}\n\n${replyToTraveler(history)}`;
+      const aiReply = await callGeminiDirect(history.slice(1));
+      reply = aiReply ?? replyToTraveler(history);
     } catch {
-      reply = `${failureNotice.unavailable}\n\n${replyToTraveler(history)}`;
+      reply = replyToTraveler(history);
     }
 
     if (session.current !== current) return;
