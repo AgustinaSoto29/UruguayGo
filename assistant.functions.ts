@@ -2,8 +2,6 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { buildSystemPrompt, sanitizeHistory } from './assistant-prompt';
 
-// Llamada directa a la API nativa de Google Gemini desde el servidor.
-// GEMINI_API_KEY nunca se expone en el navegador.
 const MODEL = 'gemini-2.5-flash';
 const TIMEOUT_MS = 25_000;
 
@@ -17,10 +15,20 @@ const input = z.object({
     .max(40),
 });
 
+function getGeminiApiKey(): string | undefined {
+  const serverKey = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY?.trim() : undefined;
+  if (serverKey) return serverKey;
+  const viteKey =
+    typeof import.meta !== 'undefined'
+      ? (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_GEMINI_API_KEY?.trim()
+      : undefined;
+  return viteKey || undefined;
+}
+
 export const askAssistant = createServerFn({ method: 'POST' })
   .inputValidator((data: unknown) => input.parse(data))
   .handler(async ({ data }): Promise<AssistantResult> => {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    const apiKey = getGeminiApiKey();
     if (!apiKey) return { ok: false, reason: 'not_configured' };
 
     const history = sanitizeHistory(data.messages);
