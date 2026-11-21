@@ -1,11 +1,34 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { ArrowRight, ArrowUpRight, Compass, MapPin, Search, Sparkles } from 'lucide-react';
+import { useState, type ComponentType } from 'react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Compass,
+  Landmark,
+  Mountain,
+  Palette,
+  Search,
+  Sparkles,
+  Trees,
+  Umbrella,
+  Utensils,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DestinationCard } from '@/components/destination-card';
 import { StoryCard } from '@/components/story-card';
-import { categories, destinations, heroImage, pageHead } from '@/lib/destinations';
+import { categories, destinations, heroImage, pageHead, type Category } from '@/lib/destinations';
 import { initialExperiences } from '@/lib/experiences';
+
+const categoryIcons: Record<string, ComponentType<{ size?: number; className?: string }>> = {
+  Playas: Umbrella,
+  Naturaleza: Trees,
+  Aventura: Mountain,
+  Cultura: Palette,
+  Historia: Landmark,
+  Gastronomía: Utensils,
+  Gastronomia: Utensils,
+  'Joyas ocultas': Sparkles,
+};
 
 export const Route = createFileRoute('/')({
   head: () =>
@@ -61,19 +84,24 @@ function Home() {
             </Button>
           </form>
         </div>
-        <div className="hero-caption">
-          <MapPin />
-          Inspirado en la costa de Rocha, Uruguay
-        </div>
       </section>
 
       <section className="category-strip" aria-label="Categorías turísticas">
         <div className="container category-row">
-          {categories.map((category) => (
-            <Link className="category-link" key={category} to="/destinos" search={{ categoria: category }}>
-              {category}
-            </Link>
-          ))}
+          {categories.map((category: Category) => {
+            const Icon = categoryIcons[category] ?? Compass;
+            return (
+              <Link
+                className="category-link flex flex-col items-center gap-1.5"
+                key={category}
+                to="/destinos"
+                search={{ categoria: category }}
+              >
+                <Icon size={18} />
+                <span>{category}</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
