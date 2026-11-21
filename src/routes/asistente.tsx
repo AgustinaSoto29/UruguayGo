@@ -10,7 +10,7 @@ export const Route = createFileRoute('/asistente')({
   head: () =>
     pageHead(
       'Tu asistente de viaje',
-      'Inspiración y orientación práctica para tu próxima escapada por Uruguay, con un asistente de inteligencia artificial basado en las guías de UruguayGo.',
+      'Inspiracion y orientacion practica para tu proxima escapada por Uruguay con UruguayGo.',
     ),
   component: Assistant,
 });
@@ -20,12 +20,12 @@ const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 const welcome: ChatMessage = {
   role: 'assistant',
   content:
-    '¡Hola! Soy tu compañero de viaje en **UruguayGo** ☀️\n\nPuedo recomendarte destinos clásicos o lugares poco conocidos de Uruguay (como **Las Grutas de Punta Ballena**, el **Arboretum Lussich**, **San Gregorio de Polanco** o **Sierra de las Ánimas**). ¿Qué te gustaría descubrir?',
+    '¡Hola! Soy tu compañero de viaje en **UruguayGo**. Preguntame por destinos clasicos o joyas ocultas como Las Grutas de Punta Ballena, Arboretum Lussich, San Gregorio de Polanco o Sierra de las Animas.',
 };
 
 const suggestions = [
-  '¿Qué lugares poco conocidos de Uruguay me recomendás?',
-  'Contame sobre Las Grutas de Punta Ballena y el Arboretum Lussich',
+  '¿Qué lugares poco conocidos me recomendás?',
+  'Contame sobre Las Grutas de Punta Ballena',
   'Armame una escapada de naturaleza y sierras',
   '¿Qué hacer en Colonia o Cabo Polonio?',
 ];
@@ -42,16 +42,15 @@ function sanitizeHistory(history: ChatMessage[]): ChatMessage[] {
 
 function buildSystemPrompt(): string {
   const catalog = destinations
-    .map((d) => `- ${d.name} (${d.region}) [/destinos/${d.slug}]: ${d.description} | Categorías: ${d.categories.join(', ')} | Mejor época: ${d.season}`)
+    .map((d) => `${d.name} (${d.region}) [/destinos/${d.slug}]: ${d.description}`)
     .join('\n');
 
   return [
-    'Sos el asistente turístico oficial de UruguayGo.',
-    'Respondé siempre en español rioplatense cercano, claro y útil, enfocado en turismo en Uruguay.',
-    'Cuando menciones un destino del catálogo, podés enlazarlo usando Markdown como [Nombre](/destinos/slug).',
-    'Si el usuario pregunta por joyas ocultas o lugares poco conocidos, priorizá los destinos de la categoría "Joyas ocultas".',
-    'Catálogo disponible:\n' + catalog,
-  ].join('\n\n');
+    'Sos el asistente turistico de UruguayGo. Responde en espanol claro y util sobre turismo en Uruguay.',
+    'Si mencionas un destino del catalogo, usa enlaces Markdown como [Nombre](/destinos/slug).',
+    'Destinos:',
+    catalog,
+  ].join('\n');
 }
 
 async function tryModel(
@@ -70,9 +69,7 @@ async function tryModel(
     }),
   });
 
-  if (!response.ok) {
-    return null;
-  }
+  if (!response.ok) return null;
 
   const data = (await response.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
@@ -159,5 +156,66 @@ function Assistant() {
           <h1>Tu compañero de aventura</h1>
           <p>
             {hasApiKey
-              ? 'Asistente turístico de UruguayGo conectado a Google Gemini.'
-              : 'Asistente turístico de UruguayGo (modo guía local; faltaría configurar VITE_GEMINI_API
+              ? 'Asistente turistico de UruguayGo conectado a Google Gemini.'
+              : 'Asistente turistico de UruguayGo (falta VITE_GEMINI_API_KEY en Vercel).'}
+          </p>
+        </div>
+        <Button variant="ghost" size="icon" title="Nueva conversacion" aria-label="Nueva conversacion" onClick={reset}>
+          <Trash2 />
+        </Button>
+      </div>
+
+      <div className="chat-messages" aria-live="polite" aria-label="Conversacion">
+        {messages.map((message, i) => (
+          <div className={`chat-message ${message.role}`} key={i}>
+            <ReactMarkdown
+              components={{
+                a: ({ href, children }) =>
+                  href?.startsWith('/destinos/') ? (
+                    <Link to={href as '/destinos/$slug'}>{children}</Link>
+                  ) : (
+                    <span>{children}</span>
+                  ),
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        ))}
+        {loading && <div className="chat-message assistant typing">Escribiendo...</div>}
+        <div ref={bottom} />
+      </div>
+
+      <div className="suggestions">
+        {suggestions.map((s) => (
+          <Button key={s} variant="outline" size="sm" disabled={loading} onClick={() => send(s)}>
+            {s}
+          </Button>
+        ))}
+      </div>
+
+      <form
+        className="chat-compose"
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+        }}
+      >
+        <input
+          aria-label="Tu pregunta"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Preguntame por destinos, rutas o joyas ocultas..."
+          maxLength={2000}
+        />
+        <Button type="submit" size="icon" aria-label="Enviar pregunta" disabled={!input.trim() || loading}>
+          <Send />
+        </Button>
+      </form>
+
+      <p className="chat-disclaimer">
+        Asistente de viaje de UruguayGo · Verifica horarios y accesos antes de viajar.
+      </p>
+    </main>
+  );
+}
