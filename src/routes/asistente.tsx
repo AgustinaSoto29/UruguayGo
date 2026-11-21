@@ -15,7 +15,7 @@ export const Route = createFileRoute('/asistente')({
   component: Assistant,
 });
 
-const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-lite-latest', 'gemini-flash-latest'];
 
 const welcome: ChatMessage = {
   role: 'assistant',
@@ -58,7 +58,7 @@ async function tryModel(
   apiKey: string,
   systemPrompt: string,
   contents: { role: string; parts: { text: string }[] }[],
-): Promise<string | null> {
+): Promise<{ text: string; model: string } | null> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(url, {
     method: 'POST',
@@ -80,10 +80,10 @@ async function tryModel(
     .join('')
     .trim();
 
-  return text || null;
+  return text ? { text, model } : null;
 }
 
-async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> {
+async function callGeminiDirect(history: ChatMessage[]): Promise<{ text: string; model: string } | null> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY?.trim();
   if (!apiKey) return null;
 
@@ -97,8 +97,8 @@ async function callGeminiDirect(history: ChatMessage[]): Promise<string | null> 
   }));
 
   for (const model of MODELS) {
-    const reply = await tryModel(model, apiKey, systemPrompt, contents);
-    if (reply) return reply;
+    const res = await tryModel(model, apiKey, systemPrompt, contents);
+    if (res) return res;
   }
 
   return null;
@@ -109,6 +109,9 @@ function Assistant() {
   const [messages, setMessages] = useState<ChatMessage[]>([welcome]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [statusNote, setStatusNote] = useState<string>(
+    hasApiKey ? 'Listo para consultar Gemini' : 'Sin VITE_GEMINI_API_KEY (modo respaldo local)',
+  );
   const bottom = useRef<HTMLDivElement>(null);
   const session = useRef(0);
 
@@ -129,10 +132,17 @@ function Assistant() {
 
     let reply: string;
     try {
-      const aiReply = await callGeminiDirect(history.slice(1));
-      reply = aiReply ?? replyToTraveler(history);
+      const aiRes = await callGeminiDirect(history.slice(1));
+      if (aiRes) {
+        reply = aiRes.text;
+        setStatusNote(`Conectado a Gemini (${aiRes.model})`);
+      } else {
+        reply = replyToTraveler(history);
+        setStatusNote('Modo respaldo local (Gemini no devolvio respuesta en este intento)');
+      }
     } catch {
       reply = replyToTraveler(history);
+      setStatusNote('Modo respaldo local (error de red al consultar Gemini)');
     }
 
     if (session.current !== current) return;
@@ -144,6 +154,7 @@ function Assistant() {
     session.current += 1;
     setMessages([welcome]);
     setLoading(false);
+    setStatusNote(hasApiKey ? 'Listo para consultar Gemini' : 'Sin VITE_GEMINI_API_KEY (modo respaldo local)');
   }
 
   return (
@@ -154,11 +165,7 @@ function Assistant() {
         </span>
         <div className="flex-1">
           <h1>Tu companero de aventura</h1>
-          <p>
-            {hasApiKey
-              ? 'Asistente turistico de UruguayGo conectado a Google Gemini.'
-              : 'Asistente turistico de UruguayGo (falta VITE_GEMINI_API_KEY en Vercel).'}
-          </p>
+          <p>{statusNote}</p>
         </div>
         <Button variant="ghost" size="icon" title="Nueva conversacion" aria-label="Nueva conversacion" onClick={reset}>
           <Trash2 />
