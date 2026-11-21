@@ -3,9 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Send, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { pageHead } from '@/lib/destinations';
+import { destinations, pageHead } from '@/lib/destinations';
 import { replyToTraveler, type ChatMessage } from '@/lib/travel-assistant';
-import { buildSystemPrompt, sanitizeHistory } from '@/lib/assistant-prompt';
 
 export const Route = createFileRoute('/asistente')({
   head: () =>
@@ -31,7 +30,36 @@ const suggestions = [
   '¿Qué hacer en Colonia o Cabo Polonio?',
 ];
 
-async function tryModel(model: string, apiKey: string, systemPrompt: string, contents: { role: string; parts: { text: string }[] }[]): Promise<string | null> {
+function sanitizeHistory(history: ChatMessage[]): ChatMessage[] {
+  return history
+    .filter((msg) => (msg.role === 'user' || msg.role === 'assistant') && msg.content.trim().length > 0)
+    .slice(-10)
+    .map((msg) => ({
+      role: msg.role,
+      content: msg.content.trim().slice(0, 2000),
+    }));
+}
+
+function buildSystemPrompt(): string {
+  const catalog = destinations
+    .map((d) => `- ${d.name} (${d.region}) [/destinos/${d.slug}]: ${d.description} | Categorías: ${d.categories.join(', ')} | Mejor época: ${d.season}`)
+    .join('\n');
+
+  return [
+    'Sos el asistente turístico oficial de UruguayGo.',
+    'Respondé siempre en español rioplatense cercano, claro y útil, enfocado en turismo en Uruguay.',
+    'Cuando menciones un destino del catálogo, podés enlazarlo usando Markdown como [Nombre](/destinos/slug).',
+    'Si el usuario pregunta por joyas ocultas o lugares poco conocidos, priorizá los destinos de la categoría "Joyas ocultas".',
+    'Catálogo disponible:\n' + catalog,
+  ].join('\n\n');
+}
+
+async function tryModel(
+  model: string,
+  apiKey: string,
+  systemPrompt: string,
+  contents: { role: string; parts: { text: string }[] }[],
+): Promise<string | null> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(url, {
     method: 'POST',
@@ -132,65 +160,4 @@ function Assistant() {
           <p>
             {hasApiKey
               ? 'Asistente turístico de UruguayGo conectado a Google Gemini.'
-              : 'Asistente turístico de UruguayGo (modo guía local; faltaría configurar VITE_GEMINI_API_KEY en Vercel).'}
-          </p>
-        </div>
-        <Button variant="ghost" size="icon" title="Nueva conversación" aria-label="Nueva conversación" onClick={reset}>
-          <Trash2 />
-        </Button>
-      </div>
-
-      <div className="chat-messages" aria-live="polite" aria-label="Conversación">
-        {messages.map((message, i) => (
-          <div className={`chat-message ${message.role}`} key={i}>
-            <ReactMarkdown
-              components={{
-                a: ({ href, children }) =>
-                  href?.startsWith('/destinos/') ? (
-                    <Link to={href as '/destinos/$slug'}>{children}</Link>
-                  ) : (
-                    <span>{children}</span>
-                  ),
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-          </div>
-        ))}
-        {loading && <div className="chat-message assistant typing">Escribiendo…</div>}
-        <div ref={bottom} />
-      </div>
-
-      <div className="suggestions">
-        {suggestions.map((s) => (
-          <Button key={s} variant="outline" size="sm" disabled={loading} onClick={() => send(s)}>
-            {s}
-          </Button>
-        ))}
-      </div>
-
-      <form
-        className="chat-compose"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(input);
-        }}
-      >
-        <input
-          aria-label="Tu pregunta"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Preguntame por destinos, rutas o joyas ocultas de Uruguay..."
-          maxLength={2000}
-        />
-        <Button type="submit" size="icon" aria-label="Enviar pregunta" disabled={!input.trim() || loading}>
-          <Send />
-        </Button>
-      </form>
-
-      <p className="chat-disclaimer">
-        Asistente de viaje de UruguayGo impulsado por Google Gemini · Confirmá horarios, transporte y accesos antes de viajar.
-      </p>
-    </main>
-  );
-}
+              : 'Asistente turístico de UruguayGo (modo guía local; faltaría configurar VITE_GEMINI_API
