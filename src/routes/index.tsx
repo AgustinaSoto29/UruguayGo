@@ -1,24 +1,10 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Compass,
-  Gem,
-  Landmark,
-  MapPin,
-  Mountain,
-  Search,
-  Sparkles,
-  Trees,
-  Utensils,
-  Waves,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Compass, MapPin, Search, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DestinationCard } from '@/components/destination-card';
 import { StoryCard } from '@/components/story-card';
-import { categories, destinations, heroImage, pageHead, type Category } from '@/lib/destinations';
+import { categories, destinations, heroImage, pageHead } from '@/lib/destinations';
 import { initialExperiences } from '@/lib/experiences';
 
 export const Route = createFileRoute('/')({
@@ -31,21 +17,9 @@ export const Route = createFileRoute('/')({
   component: Home,
 });
 
-const categoryIcons: Record<Category, LucideIcon> = {
-  Playas: Waves,
-  Naturaleza: Trees,
-  Aventura: Mountain,
-  Cultura: Compass,
-  Historia: Landmark,
-  Gastronomía: Utensils,
-  'Joyas ocultas': Gem,
-};
-
 function Home() {
   const [query, setQuery] = useState('');
   const navigate = useNavigate();
-  const hiddenGems = destinations.filter((d) => d.categories.includes('Joyas ocultas'));
-  const classics = destinations.filter((d) => !d.categories.includes('Joyas ocultas'));
 
   return (
     <main>
@@ -95,17 +69,11 @@ function Home() {
 
       <section className="category-strip" aria-label="Categorías turísticas">
         <div className="container category-row">
-          {categories.map((category) => {
-            const Icon = categoryIcons[category] ?? Compass;
-            return (
-              <Link className="category-link" key={category} to="/destinos" search={{ categoria: category }}>
-                <span className="category-icon">
-                  <Icon />
-                </span>
-                {category}
-              </Link>
-            );
-          })}
+          {categories.map((category) => (
+            <Link className="category-link" key={category} to="/destinos" search={{ categoria: category }}>
+              {category}
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -114,38 +82,18 @@ function Home() {
           <div>
             <div className="section-label">Dejá que el viaje te encuentre</div>
             <h2>Lugares que tenés que conocer</h2>
-            <p className="section-subtitle">Algunos favoritos para empezar a enamorarte de Uruguay.</p>
+            <p className="section-subtitle">Destinos clásicos y nuevos descubrimientos en todo Uruguay.</p>
           </div>
           <Link className="text-link" to="/destinos" search={{}}>
             Ver todos los destinos <ArrowRight />
           </Link>
         </div>
         <div className="destination-grid">
-          {classics.slice(0, 4).map((d) => (
+          {destinations.slice(0, 8).map((d) => (
             <DestinationCard key={d.slug} destination={d} />
           ))}
         </div>
       </section>
-
-      {hiddenGems.length > 0 && (
-        <section className="section container">
-          <div className="section-heading">
-            <div>
-              <div className="section-label">Fuera del mapa turístico</div>
-              <h2>Joyas ocultas de Uruguay</h2>
-              <p className="section-subtitle">Rincones que pocos conocen: geoparques, humedales, patrimonio y sierras.</p>
-            </div>
-            <Link className="text-link" to="/destinos" search={{ categoria: 'Joyas ocultas' }}>
-              Ver todas las joyas <ArrowRight />
-            </Link>
-          </div>
-          <div className="destination-grid">
-            {hiddenGems.slice(0, 4).map((d) => (
-              <DestinationCard key={d.slug} destination={d} />
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="stories-band">
         <div className="section container">
