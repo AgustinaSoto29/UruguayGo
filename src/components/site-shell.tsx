@@ -1,7 +1,105 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowUpRight, Compass, Menu, MessageCircle, Sun, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-export function Logo(){return <Link to="/" className="brand" aria-label="UruguayGo, inicio"><Compass strokeWidth={1.9}/><span>Uruguay<em>Go</em></span></Link>}
-export function Header(){const [open,setOpen]=useState(false);const {pathname}=useLocation();return <header className="site-header"><div className="container header-inner"><Logo/><nav aria-label="Navegación principal" className={`nav ${open?'open':''}`}><Link to="/" activeOptions={{exact:true}} activeProps={{className:'active'}} onClick={()=>setOpen(false)}>Inicio</Link><Link to="/destinos" search={{}} className={pathname.startsWith('/destinos')?'active':''} onClick={()=>setOpen(false)}>Destinos</Link><Link to="/experiencias" activeProps={{className:'active'}} onClick={()=>setOpen(false)}>Experiencias</Link><Link to="/asistente" activeProps={{className:'active'}} onClick={()=>setOpen(false)}>Asistente de viaje</Link></nav><div className="header-cta"><span className="country-mark"><Sun size={16}/>Hecho para descubrir</span><Button asChild size="sm"><Link to="/destinos" search={{}}>¡Vamos a explorar! <ArrowUpRight/></Link></Button></div><Button className="mobile-menu" variant="ghost" size="icon" aria-label={open?'Cerrar menú':'Abrir menú'} onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</Button></div></header>}
-export function Footer(){return <><footer className="footer"><div className="container footer-inner"><div><Logo/><p>Un país chiquito. Infinitas formas de descubrirlo.</p></div><div className="footer-links"><Link to="/destinos" search={{}}>Destinos</Link><Link to="/experiencias">Experiencias</Link><Link to="/asistente">Asistente de viaje</Link></div><p>© 2026 UruguayGo · Hecho con espíritu viajero</p></div></footer><Button asChild size="icon" className="floating-chat" aria-label="Abrir asistente de viaje" title="Asistente de viaje"><Link to="/asistente"><MessageCircle/></Link></Button></>}
+
+export function Logo() {
+  return (
+    <Link to="/" className="brand" aria-label="UruguayGo, inicio">
+      <Compass strokeWidth={1.9} />
+      <span>
+        Uruguay<em>Go</em>
+      </span>
+    </Link>
+  );
+}
+
+export function Header() {
+  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  return (
+    <header className="site-header">
+      <div className="container header-inner">
+        <Logo />
+        <nav aria-label="Navegación principal" className={`nav ${open ? 'open' : ''}`}>
+          <Link to="/" activeOptions={{ exact: true }} activeProps={{ className: 'active' }}>
+            Inicio
+          </Link>
+          <Link to="/destinos" search={{}} className={pathname.startsWith('/destinos') ? 'active' : ''}>
+            Destinos
+          </Link>
+          <Link to="/experiencias" activeProps={{ className: 'active' }}>
+            Experiencias
+          </Link>
+          <Link to="/asistente" activeProps={{ className: 'active' }}>
+            Asistente de viaje
+          </Link>
+        </nav>
+        <div className="header-cta">
+          <span className="country-mark">
+            <Sun size={16} />
+            Hecho para descubrir
+          </span>
+          <Button asChild size="sm">
+            <Link to="/destinos" search={{}}>
+              ¡Vamos a explorar! <ArrowUpRight />
+            </Link>
+          </Button>
+        </div>
+        <Button
+          className="mobile-menu"
+          variant="ghost"
+          size="icon"
+          aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+          onClick={() => setOpen(!open)}
+        >
+          {open ? <X /> : <Menu />}
+        </Button>
+      </div>
+    </header>
+  );
+}
+
+export function Footer() {
+  const { pathname } = useLocation();
+  const isAssistantPage = pathname === '/asistente' || pathname.startsWith('/asistente/');
+
+  return (
+    <>
+      <footer className="footer">
+        <div className="container footer-inner">
+          <div>
+            <Logo />
+            <p>Un país chiquito. Infinitas formas de descubrirlo.</p>
+          </div>
+          <div className="footer-links">
+            <Link to="/destinos" search={{}}>
+              Destinos
+            </Link>
+            <Link to="/experiencias">Experiencias</Link>
+            <Link to="/asistente">Asistente de viaje</Link>
+          </div>
+          <p>© 2026 UruguayGo · Hecho con espíritu viajero</p>
+        </div>
+      </footer>
+      {!isAssistantPage && (
+        <Button
+          asChild
+          size="icon"
+          className="floating-chat"
+          aria-label="Abrir asistente de viaje"
+          title="Asistente de viaje"
+        >
+          <Link to="/asistente">
+            <MessageCircle />
+          </Link>
+        </Button>
+      )}
+    </>
+  );
+}
