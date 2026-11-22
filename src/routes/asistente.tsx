@@ -9,8 +9,8 @@ import { replyToTraveler, type ChatMessage } from '@/lib/travel-assistant';
 export const Route = createFileRoute('/asistente')({
   head: () =>
     pageHead(
-      'Tu asistente de viaje',
-      'Inspiracion y orientacion practica para tu proxima escapada por Uruguay con UruguayGo.',
+      'Tu asistente de viaje — UruguayGo',
+      'Inspiración y orientación práctica para tu próxima escapada por Uruguay con UruguayGo.',
     ),
   component: Assistant,
 });
@@ -20,14 +20,14 @@ const MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-flash-lite-
 const welcome: ChatMessage = {
   role: 'assistant',
   content:
-    'Hola! Soy tu companero de viaje en **UruguayGo**. Preguntame por destinos clasicos o joyas ocultas como Las Grutas de Punta Ballena, Arboretum Lussich, San Gregorio de Polanco o Sierra de las Animas.',
+    '¡Hola! Soy tu compañero de viaje en **UruguayGo**. Preguntame por destinos clásicos, rutas sin auto o joyas ocultas como [Las Grutas de Punta Ballena](/destinos/las-grutas-de-punta-ballena), Arboretum Lussich, San Gregorio de Polanco o Sierra de las Ánimas.',
 };
 
 const suggestions = [
-  'Que lugares poco conocidos me recomendas?',
-  'Contame sobre Las Grutas de Punta Ballena',
-  'Armame una escapada de naturaleza y sierras',
-  'Que hacer en Colonia o Cabo Polonio?',
+  'Escapada de 3 días desde Montevideo sin auto',
+  '¿Qué joyas ocultas me recomendás cerca de Rocha o Maldonado?',
+  'Plan B si llueve o hay mucho viento en la costa',
+  'Armame una ruta tranquila de naturaleza y sierras',
 ];
 
 function sanitizeHistory(history: ChatMessage[]): ChatMessage[] {
@@ -46,9 +46,14 @@ function buildSystemPrompt(): string {
     .join('\n');
 
   return [
-    'Sos el asistente turistico de UruguayGo. Responde en espanol claro, amable y util sobre turismo en Uruguay.',
-    'Si mencionas un destino del catalogo, usa enlaces Markdown como [Nombre](/destinos/slug).',
-    'Destinos:',
+    'Sos el asistente turístico de UruguayGo. Respondé en español rioplatense natural, claro, cercano y práctico sobre turismo en Uruguay.',
+    'Cuando recomiendes lugares o escapadas, seguí estas pautas:',
+    '1. Aclará siempre tiempos aproximados de viaje desde una base lógica (ej. Montevideo, Punta del Este/Maldonado, Rocha o Colonia) y si conviene ir en auto o en ómnibus interdepartamental.',
+    '2. Si el plan depende del clima (playa, costa o sierras), sugerí un "Plan B" cercano por si llueve o hay viento.',
+    '3. Mezclá destinos clásicos con joyas ocultas menos masivas cuando tenga sentido.',
+    '4. Siempre que menciones un destino del catálogo, usá enlaces Markdown exactos como [Nombre](/destinos/slug).',
+    '5. Mantené respuestas bien estructuradas, fáciles de leer y sin relleno.',
+    'Catálogo de destinos disponibles:',
     catalog,
   ].join('\n');
 }
@@ -106,12 +111,14 @@ async function callGeminiDirect(history: ChatMessage[]): Promise<{ text: string;
 
 function Assistant() {
   const hasApiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY?.trim());
+  const defaultStatus = hasApiKey
+    ? 'Armá tu ruta, consultá traslados o pedí rincones locales'
+    : 'Guía rápida local activa';
+
   const [messages, setMessages] = useState<ChatMessage[]>([welcome]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [statusNote, setStatusNote] = useState<string>(
-    hasApiKey ? 'Listo para consultar Gemini' : 'Sin VITE_GEMINI_API_KEY (modo respaldo local)',
-  );
+  const [statusNote, setStatusNote] = useState<string>(defaultStatus);
   const bottom = useRef<HTMLDivElement>(null);
   const session = useRef(0);
 
@@ -135,14 +142,14 @@ function Assistant() {
       const aiRes = await callGeminiDirect(history.slice(1));
       if (aiRes) {
         reply = aiRes.text;
-        setStatusNote(`Conectado a Gemini (${aiRes.model})`);
+        setStatusNote('Armá tu ruta, consultá traslados o pedí rincones locales');
       } else {
         reply = replyToTraveler(history);
-        setStatusNote('Modo respaldo local (Gemini no devolvio respuesta en este intento)');
+        setStatusNote('Respuestas de la guía local de UruguayGo');
       }
     } catch {
       reply = replyToTraveler(history);
-      setStatusNote('Modo respaldo local (error de red al consultar Gemini)');
+      setStatusNote('Respuestas de la guía local de UruguayGo');
     }
 
     if (session.current !== current) return;
@@ -154,7 +161,7 @@ function Assistant() {
     session.current += 1;
     setMessages([welcome]);
     setLoading(false);
-    setStatusNote(hasApiKey ? 'Listo para consultar Gemini' : 'Sin VITE_GEMINI_API_KEY (modo respaldo local)');
+    setStatusNote(defaultStatus);
   }
 
   return (
@@ -164,15 +171,15 @@ function Assistant() {
           <Sparkles size={25} />
         </span>
         <div className="flex-1">
-          <h1>Tu companero de aventura</h1>
+          <h1>Tu compañero de aventura</h1>
           <p>{statusNote}</p>
         </div>
-        <Button variant="ghost" size="icon" title="Nueva conversacion" aria-label="Nueva conversacion" onClick={reset}>
+        <Button variant="ghost" size="icon" title="Nueva conversación" aria-label="Nueva conversación" onClick={reset}>
           <Trash2 />
         </Button>
       </div>
 
-      <div className="chat-messages" aria-live="polite" aria-label="Conversacion">
+      <div className="chat-messages" aria-live="polite" aria-label="Conversación">
         {messages.map((message, i) => (
           <div className={`chat-message ${message.role}`} key={i}>
             <ReactMarkdown
@@ -189,7 +196,7 @@ function Assistant() {
             </ReactMarkdown>
           </div>
         ))}
-        {loading && <div className="chat-message assistant typing">Escribiendo...</div>}
+        {loading && <div className="chat-message assistant typing">Pensando tu ruta...</div>}
         <div ref={bottom} />
       </div>
 
@@ -221,7 +228,7 @@ function Assistant() {
       </form>
 
       <p className="chat-disclaimer">
-        Asistente de viaje de UruguayGo · Verifica horarios y accesos antes de viajar.
+        Asistente de viaje de UruguayGo · Verificá horarios y accesos antes de viajar.
       </p>
     </main>
   );
