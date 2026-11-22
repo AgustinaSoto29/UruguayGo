@@ -1,26 +1,13 @@
-# Pixel Perfect Replay
+# UruguayGo
 
-Implement exactly the screenshot and nothing else
+Guía web interactiva para descubrir destinos, joyas ocultas y experiencias de viaje por Uruguay, pensada para planificar escapadas a tu ritmo con información práctica y un asistente de viaje.
 
-This project was built with [Lovable](https://lovable.dev).
+## Qué ofrece
 
-**Live app**: https://pixel-perfect-replay-36830.lovable.app
+- **Catálogo de 23 destinos en todo Uruguay:** desde clásicos como Montevideo, Colonia del Sacramento, Punta del Este, Piriápolis, La Paloma o Cabo Polonio hasta joyas ocultas y áreas protegidas como Valle del Lunarejo, Quebrada de los Cuervos, Grutas del Palacio, Esteros de Farrapos, Arboretum Lussich o San Gregorio de Polanco.
+- **Búsqueda y filtros por categoría:** explorá por nombre, departamento o intereses (*Playas*, *Naturaleza*, *Aventura*, *Cultura*, *Historia*, *Gastronomía* y *Joyas ocultas*).
+- **Ficha detallada por destino:** atractivos principales, actividades recomendadas, cómo llegar, mejor época y el bloque **Mirada local y Plan B** (*Ventana ideal*, *Camino y acceso*, *Dato práctico de local* y *Plan B si cambia el día*).
+- **Experiencias de viajeros:** lectura por filtro (*Todas*, *De la comunidad*, *Mis experiencias*) y formulario para publicar nuevas historias (con carga opcional de imagen y guardado local en el navegador mediante `localStorage`).
+- **Asistente de viaje (`/asistente`):** guía conversacional con sugerencias rápidas para orientar rutas, tiempos y destinos según el tipo de escapada.
 
-## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/99f0627b-d368-4eaf-8f3a-9000d57541f0).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
